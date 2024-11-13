@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yuki bott</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            padding: 20px;
+            text-align: center;
+        }
+        h2 {
+            color: #4CAF50;
+        }
+        table {
+            width: 70%;
+            margin-top: 20px;
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+        th, td {
+            border: 2px solid #4CAF50;
+            text-align: center;
+            padding: 10px;
+        }
+        th {
+            background-color: #e8f5e9;
+            color: #388E3C;
+        }
+        input {
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            background-color: #388E3C;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #66BB6A;
+        }
+        #highestProbability {
+            font-weight: bold;
+            font-size: 18px;
+            color: #FF5722;
+        }
+        #chartContainer {
+            width: 80%;
+            margin: 30px auto;
+        }
+    </style>
+    <!-- Tambahkan Chart.js dari CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h2>Sistem Lempar Koin gazz</h2>
+    <label for="numFlips">Masukkan jumlah simulasi (lemparan total):</label>
+    <input type="number" id="numFlips" value="100" min="1">
+    <button onclick="simulateCoinFlips()">Mulai Simulasi</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Kombinasi Koin</th>
+                <th>AA</th>
+                <th>AG</th>
+                <th>GA</th>
+                <th>GG</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Banyak Muncul</td>
+                <td id="countAA">0</td>
+                <td id="countAG">0</td>
+                <td id="countGA">0</td>
+                <td id="countGG">0</td>
+            </tr>
+            <tr>
+                <td>Peluang (%)</td>
+                <td id="probAA">0%</td>
+                <td id="probAG">0%</td>
+                <td id="probGA">0%</td>
+                <td id="probGG">0%</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Kombinasi dengan peluang terbesar: <span id="highestProbability">-</span></h3>
+
+    <div id="chartContainer">
+        <canvas id="probabilityChart"></canvas>
+    </div>
+
+    <script>
+        // Deklarasi chart agar bisa di-update setelah simulasi
+        let probabilityChart;
+
+        function simulateCoinFlips() {
+            const numFlips = parseInt(document.getElementById("numFlips").value);
+            if (numFlips <= 0) {
+                alert("Jumlah simulasi harus lebih besar dari 0!");
+                return;
+            }
+
+            const counts = { AA: 0, AG: 0, GA: 0, GG: 0 };
+
+            // Simulasi peluang empirik
+            for (let i = 0; i < numFlips; i++) {
+                const flip1 = Math.random() < 0.5 ? 'A' : 'G';
+                const flip2 = Math.random() < 0.5 ? 'A' : 'G';
+                const result = flip1 + flip2;
+                counts[result]++;
+            }
+
+            let maxProbability = 0;
+            let maxCombo = 'AA';
+
+            // Menghitung peluang dan memperbarui tabel
+            for (const combo in counts) {
+                const probability = ((counts[combo] / numFlips) * 100).toFixed(2);
+                document.getElementById(`count${combo}`).textContent = counts[combo];
+                document.getElementById(`prob${combo}`).textContent = probability + "%";
+
+                if (parseFloat(probability) > maxProbability) {
+                    maxProbability = probability;
+                    maxCombo = combo;
+                }
+            }
+
+            // Menampilkan kombinasi dengan peluang terbesar
+            document.getElementById("highestProbability").textContent = maxCombo;
+
+            // Menampilkan data di chart
+            updateChart([counts.AA, counts.AG, counts.GA, counts.GG], numFlips);
+        }
+
+        function updateChart(counts, totalFlips) {
+            const probabilities = counts.map(count => ((count / totalFlips) * 100).toFixed(2));
+
+            // Jika chart sudah ada, cukup update datanya
+            if (probabilityChart) {
+                probabilityChart.data.datasets[0].data = probabilities;
+                probabilityChart.update();
+            } else {
+                // Membuat chart jika belum ada
+                const ctx = document.getElementById("probabilityChart").getContext("2d");
+                probabilityChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['AA', 'AG', 'GA', 'GG'],
+                        datasets: [{
+                            label: 'Peluang Kombinasi (%)',
+                            data: probabilities,
+                            backgroundColor: 'rgba(66, 165, 245, 0.2)',
+                            borderColor: 'rgba(66, 165, 245, 1)',
+                            borderWidth: 2,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Peluang (%)'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Kombinasi Koin'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+</html>
